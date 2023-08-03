@@ -1,0 +1,21 @@
+metadata:
+    language: v1-beta
+    name: "jackson"
+    description: "jackson"
+
+define:
+		payload=`["java.net.InetAddress","{generate_collaborator_address()}"]`
+
+given request then
+    if {base.request.body} matches "^[{]" then
+        send request called inject_sspp:
+            method: "POST"
+            body: {regex_replace({base.request.body}, ".+", {payload})}
+				if dns interactions then
+					report issue:
+		            severity: high
+		            confidence: tentative
+		            detail: "fastjson"
+		            remediation: "fastjson"
+				end if
+		end if

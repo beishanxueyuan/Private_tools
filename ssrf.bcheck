@@ -1,0 +1,16 @@
+metadata:
+language: v1-beta
+name: "ssrf"
+description: "ssrf"
+author: "chain00x"
+
+given insertion point then
+send payload:
+replacing: `https://{generate_collaborator_address()}/`
+if any interactions then
+report issue:
+severity: high
+confidence: firm
+detail: "ssrf"
+remediation: "ssrf"
+end if

