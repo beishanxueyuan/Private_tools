@@ -5,12 +5,9 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import static java.util.Arrays.asList;
 import java.io.PrintWriter;
-import java.net.HttpURLConnection;
-import java.io.IOException;
 
 public class BurpExtender implements IBurpExtender, IScannerCheck {
     private PrintWriter stdout;
@@ -18,8 +15,6 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
     private IBurpExtenderCallbacks callbacks;
     private IExtensionHelpers helpers;
 
-    static List<String> url_list = new ArrayList<String>();
-    static List<String> url_list_403 = new ArrayList<String>();
 
         public static byte[] strToByteArray(String str) {
             if (str == null) {
@@ -29,22 +24,6 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
             return byteArray;
         }
 
-
-
-    public static int get_is_waf(String test_url) throws IOException {
-        // 当前 URL
-        String currentUrl = test_url;
-        // 新增的参数 ID
-        String id = "1'like(sleep(3))%26%26'1";
-        // 增加参数后的新 URL
-        URL url = new URL(currentUrl + "?ID=" + id);
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        con.setRequestProperty("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36");
-        con.setRequestMethod("GET");
-        // 获取返回包的 code
-        int responseCode = con.getResponseCode();
-        return responseCode;
-    }
 
     public static boolean isNumericZidai(String str) {
         for (int i = 0; i < str.length(); i++) {
@@ -81,10 +60,10 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 //过滤垃圾数据包
             URL request_url = helpers.analyzeRequest(baseRequestResponse).getUrl();
             List<String> list = asList("myqcloud.com", ".3g2", ".3gp", ".7z", ".aac", ".abw", ".aif", ".aifc", ".aiff", ".arc", ".au", ".avi", ".azw", ".bin", ".bmp", ".bz", ".bz2", ".cmx", ".cod", ".csh", ".css", ".csv", ".doc", ".docx", ".eot", ".epub", ".gif", ".gz", ".ico", ".ics", ".ief", ".jar", ".jfif", ".jpe", ".jpeg", ".jpg", ".m3u", ".mid", ".midi", ".mp4", ".mjs", ".mp2", ".mp3", ".mpa", ".mpe", ".mpeg", ".mpg", ".mpkg", ".mpp", ".mpv2", ".odp", ".ods", ".odt", ".oga", ".ogv", ".ogx", ".otf", ".pbm", ".pdf", ".pgm", ".png", ".pnm", ".ppm", ".ppt", ".pptx", ".ra", ".ram", ".rar", ".ras", ".rgb", ".rmi", ".rtf", ".snd", ".svg", ".swf", ".tar", ".tif", ".tiff", ".ttf", ".vsd", ".wav", ".weba", ".webm", ".webp", ".woff", ".woff2", ".xbm", ".xls", ".xlsx", ".xpm", ".xul", ".xwd", ".zip", ".zip", ".js");
-            List<String> header_list = asList("application/octet-stream");
+            List<String> req_header_list = asList("application/octet-stream");
             for (String header : helpers.analyzeRequest(request).getHeaders()) {
-                for (int i = 0; i < header_list.size(); i++) {
-                    String false_header = header_list.get(i);
+                for (int i = 0; i < req_header_list.size(); i++) {
+                    String false_header = req_header_list.get(i);
                     if (header.contains(false_header)) {
                         return;
                     }
@@ -227,34 +206,42 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                 List request_headers = analyzedRequest.getHeaders();
                 if (request_body.contains("\":\"") || request_body.contains("\":[\"")) {
 //json list
-                    if (request_body.contains("\":[\"")) {
-                        Pattern p_list = Pattern.compile("\"(\\w+)\":\\[(.*?)\\]");
+                    if (request_body.contains(":[")) {
+                        Pattern p_list = Pattern.compile("(\"|\\\\\")(\\w+)(\"|\\\\\"):\\[(.*?)\\]");
                         Matcher m_list = p_list.matcher(request_body);
                         String json_list = null;
                         String json_key = null;
+                        String e_str = null;
+                        String[] list_values = new String[0];
                         while (m_list.find()) {
                             if (!callbacks.isInScope(request_url)) {
                                 return;
                             }
-                            json_key = m_list.group(1);
-                            json_list = m_list.group(2);
+                            json_key = m_list.group(2);
+                            json_list = m_list.group();
+                            list_values = m_list.group(4).split(",");
+                            e_str = m_list.group(3);
                         }
                         boolean is_not_null = json_list.matches(".*[A-Za-z0-9]+.*");
                         if (!is_not_null) {
                             return;
                         }
 
-                        String[] json_arr = json_list.replace("\"", "").split(",");
                         String new_para1 = "";
                         String new_para2 = "";
-                        for (String json_value : json_arr) {
+                        for (String list_value : list_values) {
                             if (!callbacks.isInScope(request_url)) {
                                 return;
                             }
+                            String real_list_value=list_value;
+                            if (list_value.equals(e_str+e_str)){
+                                list_value=e_str+"1"+e_str;
+                            }
+                            String  json_value = list_value.replace(e_str, "");
                             if (isNumericZidai(json_value)) {
-                                new_para1 = json_list.replace(json_value, json_value + "-a");
-                                new_para2 = json_list.replace(json_value, json_value + "-0");
-                                String s_new_request_body1 = request_body.replace(json_list,new_para1);
+                                new_para1 = json_list.replace(real_list_value,list_value.replace(json_value, json_value + "-a"));//
+                                new_para2 = json_list.replace(real_list_value, list_value.replace(json_value, json_value + "-a"));
+                                String s_new_request_body1 = request_body.replace(json_list, new_para1);
                                 byte[] b_new_request_body1 = strToByteArray(s_new_request_body1);
                                 new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body1);
                                 IHttpRequestResponse req = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
@@ -262,17 +249,17 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                 int int_bodyOffset1 = analyzedResponse1.getBodyOffset();
                                 String int_body1 = new String(req.getResponse()).substring(int_bodyOffset1);
                                 StringSimilarity similar = new StringSimilarity();
-                                double similarity = similar.lengthRatio(body,int_body1);
-                                if (similarity>0.05){
-                                    String s_new_request_body2 = request_body.replace(json_list,new_para2);
+                                double similarity = similar.lengthRatio(body, int_body1);
+                                if (similarity > 0.05) {
+                                    String s_new_request_body2 = request_body.replace(json_list, new_para2);
                                     byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
                                     new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
                                     IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                     IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req2.getResponse());
                                     int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
                                     String int_body2 = new String(req2.getResponse()).substring(int_bodyOffset2);
-                                    double similarity2 = similar.lengthRatio(int_body1,int_body2);
-                                    if (similarity2>0.05){
+                                    double similarity2 = similar.lengthRatio(int_body1, int_body2);
+                                    if (similarity2 > 0.05) {
                                         callbacks.addScanIssue(new CustomScanIssue(
                                                 baseRequestResponse.getHttpService(),
                                                 helpers.analyzeRequest(baseRequestResponse).getUrl(),
@@ -285,9 +272,9 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 
                                 }
                             }
-                            new_para1 = json_list.replace(json_value, json_value + "'");
-                            new_para2 = json_list.replace(json_value, json_value + "''");
-                            String s_new_request_body1 = request_body.replace(json_list,new_para1);
+                            new_para1 = json_list.replace(real_list_value,list_value.replace(json_value, json_value + "'"));
+                            new_para2 = json_list.replace(real_list_value,list_value.replace(json_value, json_value + "''"));
+                            String s_new_request_body1 = request_body.replace(json_list, new_para1);
                             byte[] b_new_request_body1 = strToByteArray(s_new_request_body1);
                             new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body1);
                             IHttpRequestResponse req = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
@@ -295,17 +282,17 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                             int int_bodyOffset1 = analyzedResponse1.getBodyOffset();
                             String int_body1 = new String(req.getResponse()).substring(int_bodyOffset1);
                             StringSimilarity similar = new StringSimilarity();
-                            double similarity = similar.lengthRatio(body,int_body1);
-                            if (similarity>0.05){
-                                String s_new_request_body2 = request_body.replace(json_list,new_para2);
+                            double similarity = similar.lengthRatio(body, int_body1);
+                            if (similarity > 0.05) {
+                                String s_new_request_body2 = request_body.replace(json_list, new_para2);
                                 byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
                                 new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
                                 IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                 IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req2.getResponse());
                                 int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
                                 String int_body2 = new String(req2.getResponse()).substring(int_bodyOffset2);
-                                double similarity2 = similar.lengthRatio(int_body1,int_body2);
-                                if (similarity2>0.05){
+                                double similarity2 = similar.lengthRatio(int_body1, int_body2);
+                                if (similarity2 > 0.05) {
                                     callbacks.addScanIssue(new CustomScanIssue(
                                             baseRequestResponse.getHttpService(),
                                             helpers.analyzeRequest(baseRequestResponse).getUrl(),
