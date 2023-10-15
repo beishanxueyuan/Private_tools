@@ -9,7 +9,9 @@ import java.util.List;
 import static java.util.Arrays.asList;
 import java.io.PrintWriter;
 
+
 public class BurpExtender implements IBurpExtender, IScannerCheck {
+    String errorRegex = "(?is).*sql.*?syntax.*|.*(\u6570\u636E\u5E93|sql).*?(\u5F02\u5E38|\u9519\u8BEF).*";
     private PrintWriter stdout;
     private PrintWriter stderr;
     private IBurpExtenderCallbacks callbacks;
@@ -89,6 +91,16 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                 int request_bodyOffset = analyzedRequest.getBodyOffset();
                 String request_body = origin_request.substring(request_bodyOffset);
                 String body = origin_response.substring(bodyOffset);
+//报错注入
+                if(body.matches(errorRegex)){
+                    callbacks.addScanIssue(new CustomScanIssue(
+                            baseRequestResponse.getHttpService(),
+                            helpers.analyzeRequest(baseRequestResponse).getUrl(),
+                            new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
+                            "SQL TEST",
+                            "error",
+                            "High"));
+                }
                 List<IParameter> paraList = analyzedRequest.getParameters();
 
                 for (IParameter para : paraList) {
@@ -96,7 +108,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                         return;
                     }
                     if(!request_body.matches(".*?([\\w\\W]+)=(\\s|.*?)") & para.getType() == 1){
-                        return;
+                        continue;
                     }
                     String key = para.getName();
                     int type = para.getType();
@@ -140,9 +152,18 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                             "High"));
                                 }
                             }
+                            if(int_body1.matches(errorRegex)){
+                                callbacks.addScanIssue(new CustomScanIssue(
+                                        baseRequestResponse.getHttpService(),
+                                        helpers.analyzeRequest(baseRequestResponse).getUrl(),
+                                        new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
+                                        "SQL TEST",
+                                        "error",
+                                        "High"));
+                            }
                         }
 //str injection
-                        IParameter newPara = helpers.buildParameter(key, value + "'", para.getType());
+                        IParameter newPara = helpers.buildParameter(key, value + "'\"", para.getType());
                         new_Request = baseRequestResponse.getRequest();
                         new_Request = helpers.updateParameter(new_Request, newPara);
                         IHttpRequestResponse req = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
@@ -152,7 +173,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                         StringSimilarity similar = new StringSimilarity();
                         double similarity = similar.lengthRatio(body,int_body1);
                         if(similarity > 0.05) {
-                            newPara = helpers.buildParameter(key, value + "''", para.getType());
+                            newPara = helpers.buildParameter(key, value + "''\"\"", para.getType());
                             new_Request = baseRequestResponse.getRequest();
                             new_Request = helpers.updateParameter(new_Request, newPara);
                             IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
@@ -169,6 +190,15 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                         "Key: " + key + "\nSimilarity: " + similarity1 + "%",
                                         "High"));
                             }
+                        }
+                        if(int_body1.matches(errorRegex)){
+                            callbacks.addScanIssue(new CustomScanIssue(
+                                    baseRequestResponse.getHttpService(),
+                                    helpers.analyzeRequest(baseRequestResponse).getUrl(),
+                                    new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
+                                    "SQL TEST",
+                                    "error",
+                                    "High"));
                         }
 //order by
                         IParameter newPara_orderby = helpers.buildParameter(key, value + ",aaaa", para.getType());
@@ -199,6 +229,15 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                         "High"));
                             }
                         }
+                        if(int_body_orderby1.matches(errorRegex)){
+                            callbacks.addScanIssue(new CustomScanIssue(
+                                    baseRequestResponse.getHttpService(),
+                                    helpers.analyzeRequest(baseRequestResponse).getUrl(),
+                                    new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
+                                    "SQL TEST",
+                                    "error",
+                                    "High"));
+                        }
                     }
                 }
 
@@ -222,13 +261,9 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                             list_values = m_list.group(4).split(",");
                             e_str = m_list.group(3);
                         }
-                        boolean is_not_null = json_list.matches(".*[A-Za-z0-9]+.*");
-                        if (!is_not_null) {
-                            return;
-                        }
-
                         String new_para1 = "";
                         String new_para2 = "";
+
                         for (String list_value : list_values) {
                             if (!callbacks.isInScope(request_url)) {
                                 return;
@@ -236,6 +271,9 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                             String real_list_value=list_value;
                             if (list_value.equals(e_str+e_str)){
                                 list_value=e_str+"1"+e_str;
+                            }
+                            if (isNumericZidai(list_value)){
+                                continue;
                             }
                             String  json_value = list_value.replace(e_str, "");
                             if (isNumericZidai(json_value)) {
@@ -271,9 +309,18 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                     }
 
                                 }
+                                if(int_body1.matches(errorRegex)){
+                                    callbacks.addScanIssue(new CustomScanIssue(
+                                            baseRequestResponse.getHttpService(),
+                                            helpers.analyzeRequest(baseRequestResponse).getUrl(),
+                                            new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
+                                            "SQL TEST",
+                                            "error",
+                                            "High"));
+                                }
                             }
-                            new_para1 = json_list.replace(real_list_value,list_value.replace(json_value, json_value + "'"));
-                            new_para2 = json_list.replace(real_list_value,list_value.replace(json_value, json_value + "''"));
+                            new_para1 = json_list.replace(real_list_value,list_value.replace(json_value, json_value + "'"+e_str.replace("\"","")+e_str.replace("\"","")+"\\\""));
+                            new_para2 = json_list.replace(real_list_value,list_value.replace(json_value, json_value + "''"+e_str.replace("\"","")+e_str.replace("\"","")+"\\\""+e_str.replace("\"","")+e_str.replace("\"","")+"\\\""));
                             String s_new_request_body1 = request_body.replace(json_list, new_para1);
                             byte[] b_new_request_body1 = strToByteArray(s_new_request_body1);
                             new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body1);
@@ -307,23 +354,21 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                         }
 
                     }
-
-
 //json
-                    String pattern = "(\"|\\\\\")(\\w+)(\"|\\\\\"):(\"|\\\\\")(.*?)(\"|\\\\\")";
+                    String pattern = "(\"|\\\\\")(\\w+)(\"|\\\\\"):(\"|\\\\\")(?!\\{)(.*?)(\"|\\\\\")";
                     Pattern r = Pattern.compile(pattern);
                     Matcher m = r.matcher(request_body);
                     while (m.find()) {
                         if (!callbacks.isInScope(request_url)) {
                             return;
                         }
+                        String e_str = m.group(3).replace("\"","");
                         String json_real_key = m.group(2);
                         String json_key = m.group(2) + m.group(3);
                         String json_real_value = m.group(5);
                         String json_value = m.group(4) + m.group(5);
-                        if ((json_value.startsWith("\"") || json_value.startsWith("\\\"")) && !json_value.contains("{")) {
+                        if ((json_value.startsWith("\"") || json_value.startsWith("\\\""))) {
                             String old_para = json_key + ":" + json_value;
-                            String new_para = "";
                             String new_para1 = "";
                             String new_para2 = "";
                             String new_para_orderby_1 = "";
@@ -365,11 +410,20 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                     }
 
                                 }
+                                if(int_body1.matches(errorRegex)){
+                                    callbacks.addScanIssue(new CustomScanIssue(
+                                            baseRequestResponse.getHttpService(),
+                                            helpers.analyzeRequest(baseRequestResponse).getUrl(),
+                                            new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
+                                            "SQL TEST",
+                                            "error",
+                                            "High"));
+                                }
 
                             }
 
-                            new_para1 = json_key + ":" + json_value + "'";
-                            new_para2 = json_key + ":" + json_value + "''";
+                            new_para1 = json_key + ":" + json_value + "'"+e_str+e_str+"\\\"";
+                            new_para2 = json_key + ":" + json_value + "''"+e_str+e_str+"\\\""+e_str+e_str+"\\\"";
                             String s_new_request_body1 = request_body.replace(old_para,new_para1);
                             byte[] b_new_request_body1 = strToByteArray(s_new_request_body1);
                             new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body1);
@@ -399,6 +453,15 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 
                                 }
 
+                            }
+                            if(int_body1.matches(errorRegex)){
+                                callbacks.addScanIssue(new CustomScanIssue(
+                                        baseRequestResponse.getHttpService(),
+                                        helpers.analyzeRequest(baseRequestResponse).getUrl(),
+                                        new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
+                                        "SQL TEST",
+                                        "error",
+                                        "High"));
                             }
 
                             new_para_orderby_1 = json_key + ":" + json_value + ",aaaa";
@@ -431,6 +494,15 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 
                                 }
 
+                            }
+                            if(int_body_orderby_1.matches(errorRegex)){
+                                callbacks.addScanIssue(new CustomScanIssue(
+                                        baseRequestResponse.getHttpService(),
+                                        helpers.analyzeRequest(baseRequestResponse).getUrl(),
+                                        new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
+                                        "SQL TEST",
+                                        "error",
+                                        "High"));
                             }
                         }
                     }
