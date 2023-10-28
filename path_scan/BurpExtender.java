@@ -102,8 +102,8 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 									baseRequestResponse.getHttpService(),
 									helpers.analyzeRequest(baseRequestResponse).getUrl(),
 									new IHttpRequestResponse[]{callbacks.applyMarkers(newRequestResponse, null, null)},
-									"FIND actuator",
-									"actuator",
+									"FIND path"+scan_path,
+									"path",
 									"High"));
 						}
 
