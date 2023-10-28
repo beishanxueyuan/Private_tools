@@ -8,12 +8,17 @@ import java.net.URL;
 import java.util.List;
 import static java.util.Arrays.asList;
 import java.io.PrintWriter;
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 
 public class BurpExtender implements IBurpExtender, IScannerCheck {
     String errorRegex = "(?is).*sql.*?syntax.*|.*(\u6570\u636E\u5E93|sql).*?(\u5F02\u5E38|\u9519\u8BEF).*";
+    private JTextField inputField;
     private PrintWriter stdout;
     private PrintWriter stderr;
+    int delay_time = 0;
     private IBurpExtenderCallbacks callbacks;
     private IExtensionHelpers helpers;
 
@@ -46,7 +51,56 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
         this.helpers = callbacks.getHelpers();
         callbacks.setExtensionName("fucksql");
         callbacks.registerScannerCheck(this);
+        // 创建一个新的Swing线程来构建用户界面
+        SwingUtilities.invokeLater(() -> {
+            // 创建一个面板
+            JPanel panel = new JPanel();
+
+            // 创建一个标签
+            JLabel label = new JLabel("请输入延迟");
+
+            // 创建一个文本框
+            inputField = new JTextField(20);
+
+            // 创建一个按钮
+            JButton button = new JButton("确定");
+
+            // 为按钮添加点击事件的监听器
+            button.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    delay_time = Integer.parseInt(inputField.getText());
+                }
+            });
+
+            // 将标签、文本框和按钮添加到面板中
+            panel.add(label);
+            panel.add(inputField);
+            panel.add(button);
+
+            // 将面板添加到Burp的标签页中
+            callbacks.addSuiteTab(new TabbedPaneFactory(panel));
+        });
+        }
+
+    private static class TabbedPaneFactory implements ITab {
+        private final JPanel panel;
+
+        public TabbedPaneFactory(JPanel panel) {
+            this.panel = panel;
+        }
+
+        @Override
+        public String getTabCaption() {
+            return "fucksql";
+        }
+
+        @Override
+        public java.awt.Component getUiComponent() {
+            return panel;
+        }
     }
+
     private ExecutorService executorService;
 
     @Override
@@ -54,9 +108,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
     public List<IScanIssue> doPassiveScan(IHttpRequestResponse baseRequestResponse) {
         executorService = Executors.newFixedThreadPool(2);
         executorService.execute(()-> {
-            byte[] new_Request = new byte[0];
-            byte[] new_Request2 = new byte[0];
-
+            byte[] new_Request;
             byte[] request = baseRequestResponse.getRequest();
             byte[] response = baseRequestResponse.getResponse();
 //过滤垃圾数据包
@@ -127,6 +179,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                             IParameter newPara = helpers.buildParameter(key, value + "-a", para.getType());
                             new_Request = baseRequestResponse.getRequest();
                             new_Request = helpers.updateParameter(new_Request, newPara);
+                            try {
+                                Thread.sleep(delay_time*1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                             IHttpRequestResponse req = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                             IResponseInfo analyzedResponse1 = helpers.analyzeResponse(req.getResponse());
                             int int_bodyOffset1 = analyzedResponse1.getBodyOffset();
@@ -137,6 +194,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                 newPara = helpers.buildParameter(key, value + "-0", para.getType());
                                 new_Request = baseRequestResponse.getRequest();
                                 new_Request = helpers.updateParameter(new_Request, newPara);
+                                try {
+                                    Thread.sleep(delay_time*1000);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                                 IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                 IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req2.getResponse());
                                 int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
@@ -166,6 +228,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                         IParameter newPara = helpers.buildParameter(key, value + "'\"", para.getType());
                         new_Request = baseRequestResponse.getRequest();
                         new_Request = helpers.updateParameter(new_Request, newPara);
+                        try {
+                            Thread.sleep(delay_time*1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                         IHttpRequestResponse req = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                         IResponseInfo analyzedResponse1 = helpers.analyzeResponse(req.getResponse());
                         int int_bodyOffset1 = analyzedResponse1.getBodyOffset();
@@ -176,6 +243,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                             newPara = helpers.buildParameter(key, value + "''\"\"", para.getType());
                             new_Request = baseRequestResponse.getRequest();
                             new_Request = helpers.updateParameter(new_Request, newPara);
+                            try {
+                                Thread.sleep(delay_time*1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                             IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                             IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req2.getResponse());
                             int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
@@ -204,6 +276,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                         IParameter newPara_orderby = helpers.buildParameter(key, value + ",aaaa", para.getType());
                         new_Request = baseRequestResponse.getRequest();
                         new_Request = helpers.updateParameter(new_Request, newPara_orderby);
+                        try {
+                            Thread.sleep(delay_time*1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                         IHttpRequestResponse req_orderby1 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                         IResponseInfo analyzedResponse_orderby1 = helpers.analyzeResponse(req_orderby1.getResponse());
                         int int_bodyOffset_orderby1 = analyzedResponse_orderby1.getBodyOffset();
@@ -214,6 +291,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                             newPara_orderby = helpers.buildParameter(key, value + ",true", para.getType());
                             new_Request = baseRequestResponse.getRequest();
                             new_Request = helpers.updateParameter(new_Request, newPara_orderby);
+                            try {
+                                Thread.sleep(delay_time*1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                             IHttpRequestResponse req_orderby2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                             IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req_orderby2.getResponse());
                             int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
@@ -282,6 +364,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                 String s_new_request_body1 = request_body.replace(json_list, new_para1);
                                 byte[] b_new_request_body1 = strToByteArray(s_new_request_body1);
                                 new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body1);
+                                try {
+                                    Thread.sleep(delay_time*1000);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                                 IHttpRequestResponse req = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                 IResponseInfo analyzedResponse1 = helpers.analyzeResponse(req.getResponse());
                                 int int_bodyOffset1 = analyzedResponse1.getBodyOffset();
@@ -292,6 +379,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                     String s_new_request_body2 = request_body.replace(json_list, new_para2);
                                     byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
                                     new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
+                                    try {
+                                        Thread.sleep(delay_time*1000);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
                                     IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                     IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req2.getResponse());
                                     int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
@@ -324,6 +416,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                             String s_new_request_body1 = request_body.replace(json_list, new_para1);
                             byte[] b_new_request_body1 = strToByteArray(s_new_request_body1);
                             new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body1);
+                            try {
+                                Thread.sleep(delay_time*1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                             IHttpRequestResponse req = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                             IResponseInfo analyzedResponse1 = helpers.analyzeResponse(req.getResponse());
                             int int_bodyOffset1 = analyzedResponse1.getBodyOffset();
@@ -334,6 +431,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                 String s_new_request_body2 = request_body.replace(json_list, new_para2);
                                 byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
                                 new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
+                                try {
+                                    Thread.sleep(delay_time*1000);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                                 IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                 IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req2.getResponse());
                                 int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
@@ -383,6 +485,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                 String s_new_request_body1 = request_body.replace(old_para,new_para1);
                                 byte[] b_new_request_body1 = strToByteArray(s_new_request_body1);
                                 new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body1);
+                                try {
+                                    Thread.sleep(delay_time*1000);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                                 IHttpRequestResponse req = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                 IResponseInfo analyzedResponse1 = helpers.analyzeResponse(req.getResponse());
                                 int int_bodyOffset1 = analyzedResponse1.getBodyOffset();
@@ -393,6 +500,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                     String s_new_request_body2 = request_body.replace(old_para,new_para2);
                                     byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
                                     new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
+                                    try {
+                                        Thread.sleep(delay_time*1000);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
                                     IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                     IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req2.getResponse());
                                     int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
@@ -427,6 +539,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                             String s_new_request_body1 = request_body.replace(old_para,new_para1);
                             byte[] b_new_request_body1 = strToByteArray(s_new_request_body1);
                             new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body1);
+                            try {
+                                Thread.sleep(delay_time*1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                             IHttpRequestResponse req = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                             IResponseInfo analyzedResponse1 = helpers.analyzeResponse(req.getResponse());
                             int int_bodyOffset1 = analyzedResponse1.getBodyOffset();
@@ -437,6 +554,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                 String s_new_request_body2 = request_body.replace(old_para,new_para2);
                                 byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
                                 new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
+                                try {
+                                    Thread.sleep(delay_time*1000);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                                 IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                 IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req2.getResponse());
                                 int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
@@ -469,6 +591,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                             String s_new_request_body_orderby_1 = request_body.replace(old_para,new_para_orderby_1);
                             byte[] b_new_request_body_orderby_1 = strToByteArray(s_new_request_body_orderby_1);
                             new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body_orderby_1);
+                            try {
+                                Thread.sleep(delay_time*1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                             IHttpRequestResponse req_orderby_1 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                             IResponseInfo analyzedResponse_orderby_1 = helpers.analyzeResponse(req_orderby_1.getResponse());
                             int int_bodyOffset_orderby_1 = analyzedResponse_orderby_1.getBodyOffset();
@@ -478,6 +605,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                                 String s_new_request_body2 = request_body.replace(old_para,new_para_orderby_2);
                                 byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
                                 new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
+                                try {
+                                    Thread.sleep(delay_time*1000);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                                 IHttpRequestResponse req2 = callbacks.makeHttpRequest(baseRequestResponse.getHttpService(), new_Request);
                                 IResponseInfo analyzedResponse2 = helpers.analyzeResponse(req2.getResponse());
                                 int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
