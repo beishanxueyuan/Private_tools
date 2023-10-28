@@ -19,7 +19,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 	private static final String EXTENSION_NAME = "path_scan";
 	private IBurpExtenderCallbacks callbacks;
 	private IExtensionHelpers helpers;
-	String json_path="/Users/chenguang/Desktop/burp/插件/path_scan/src/burp/test.json";
+	String json_path="/Users/chenguang/Desktop/burp/coding/path_scan/src/burp/test.json";
 
 	@Override
 	public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
@@ -69,17 +69,14 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 			String baseUrl = request_url.getProtocol() + "://" + request_url.getHost();
 			for (int i = 0; i < pathSegments.length; i++) {
 				try (BufferedReader reader = new BufferedReader(new FileReader(json_path))) {
-					stdout.println(json_path);
 					StringBuilder jsonContent = new StringBuilder();
 					String line;
 					while ((line = reader.readLine()) != null) {
 						jsonContent.append(line);
 					}
 					String json = jsonContent.toString();
-					stdout.println(json);
 					JSONObject jsonObject = new JSONObject(json);
 					Iterator<String> keys = jsonObject.keys();
-					stdout.println(keys);
 					while (keys.hasNext()) {
 						String scan_path = keys.next();
 						Object test_str = jsonObject.get(scan_path);
