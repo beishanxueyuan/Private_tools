@@ -367,7 +367,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
                         String json_key = m.group(2) + m.group(3);
                         String json_real_value = m.group(5);
                         String json_value = m.group(4) + m.group(5);
-                        if ((json_value.startsWith("\"") || json_value.startsWith("\\\""))) {
+                        if ((json_value.startsWith("\"") || json_value.startsWith("\\\"") && !json_value.startsWith("["))) {
                             String old_para = json_key + ":" + json_value;
                             String new_para1 = "";
                             String new_para2 = "";
