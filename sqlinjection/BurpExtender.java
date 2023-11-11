@@ -14,7 +14,6 @@ import java.awt.event.ActionListener;
 
 
 public class BurpExtender implements IBurpExtender, IScannerCheck {
-	String errorRegex = "(?is).*sql.*?syntax.*|.*(\u6570\u636E\u5E93|sql).*?(\u5F02\u5E38|\u9519\u8BEF).*";
 	private JTextField inputField;
 	private PrintWriter stdout;
 	private PrintWriter stderr;
@@ -143,16 +142,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 			int request_bodyOffset = analyzedRequest.getBodyOffset();
 			String request_body = origin_request.substring(request_bodyOffset);
 			String body = origin_response.substring(bodyOffset);
-//报错注入
-			if(body.matches(errorRegex)){
-				callbacks.addScanIssue(new CustomScanIssue(
-						baseRequestResponse.getHttpService(),
-						helpers.analyzeRequest(baseRequestResponse).getUrl(),
-						new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
-						"SQL TEST",
-						"error",
-						"High"));
-			}
+
 			List<IParameter> paraList = analyzedRequest.getParameters();
 
 			for (IParameter para : paraList) {
@@ -190,7 +180,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 						String int_body1 = new String(req.getResponse()).substring(int_bodyOffset1);
 						StringSimilarity similar = new StringSimilarity();
 						double similarity = similar.lengthRatio(body,int_body1);
-						if(similarity>0.05) {
+						if(similarity>0.08) {
 							newPara = helpers.buildParameter(key, value + "-0", para.getType());
 							new_Request = baseRequestResponse.getRequest();
 							new_Request = helpers.updateParameter(new_Request, newPara);
@@ -204,7 +194,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 							int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
 							String int_body2 = new String(req2.getResponse()).substring(int_bodyOffset2);
 							double similarity1 = similar.lengthRatio(int_body1, int_body2);
-							if (similarity1 > 0.05) {
+							if (similarity1 > 0.08) {
 								callbacks.addScanIssue(new CustomScanIssue(
 										baseRequestResponse.getHttpService(),
 										helpers.analyzeRequest(baseRequestResponse).getUrl(),
@@ -213,15 +203,6 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 										"Key: " + key + "\nSimilarity: " + similarity + "%",
 										"High"));
 							}
-						}
-						if(int_body1.matches(errorRegex)){
-							callbacks.addScanIssue(new CustomScanIssue(
-									baseRequestResponse.getHttpService(),
-									helpers.analyzeRequest(baseRequestResponse).getUrl(),
-									new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
-									"SQL TEST",
-									"error",
-									"High"));
 						}
 					}
 //str injection
@@ -239,7 +220,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 					String int_body1 = new String(req.getResponse()).substring(int_bodyOffset1);
 					StringSimilarity similar = new StringSimilarity();
 					double similarity = similar.lengthRatio(body,int_body1);
-					if(similarity > 0.05) {
+					if(similarity > 0.08) {
 						newPara = helpers.buildParameter(key, value + "''\"\"", para.getType());
 						new_Request = baseRequestResponse.getRequest();
 						new_Request = helpers.updateParameter(new_Request, newPara);
@@ -253,7 +234,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 						int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
 						String int_body2 = new String(req2.getResponse()).substring(int_bodyOffset2);
 						double similarity1 = similar.lengthRatio(int_body1, int_body2);
-						if (similarity1 > 0.05) {
+						if (similarity1 > 0.08) {
 							callbacks.addScanIssue(new CustomScanIssue(
 									baseRequestResponse.getHttpService(),
 									helpers.analyzeRequest(baseRequestResponse).getUrl(),
@@ -262,15 +243,6 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 									"Key: " + key + "\nSimilarity: " + similarity1 + "%",
 									"High"));
 						}
-					}
-					if(int_body1.matches(errorRegex)){
-						callbacks.addScanIssue(new CustomScanIssue(
-								baseRequestResponse.getHttpService(),
-								helpers.analyzeRequest(baseRequestResponse).getUrl(),
-								new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
-								"SQL TEST",
-								"error",
-								"High"));
 					}
 //order by
 					IParameter newPara_orderby = helpers.buildParameter(key, value + ",aaaa", para.getType());
@@ -287,7 +259,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 					String int_body_orderby1 = new String(req_orderby1.getResponse()).substring(int_bodyOffset_orderby1);
 					StringSimilarity similar_orderby1 = new StringSimilarity();
 					double similarity_orderby1 = similar_orderby1.lengthRatio(body,int_body_orderby1);
-					if(similarity_orderby1 > 0.05) {
+					if(similarity_orderby1 > 0.08) {
 						newPara_orderby = helpers.buildParameter(key, value + ",true", para.getType());
 						new_Request = baseRequestResponse.getRequest();
 						new_Request = helpers.updateParameter(new_Request, newPara_orderby);
@@ -301,7 +273,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 						int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
 						String int_body2 = new String(req_orderby2.getResponse()).substring(int_bodyOffset2);
 						double similarity1 = similar.lengthRatio(int_body_orderby1, int_body2);
-						if (similarity1 > 0.05) {
+						if (similarity1 > 0.08) {
 							callbacks.addScanIssue(new CustomScanIssue(
 									baseRequestResponse.getHttpService(),
 									helpers.analyzeRequest(baseRequestResponse).getUrl(),
@@ -310,15 +282,6 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 									"Key: " + key + "\nSimilarity: " + similarity1 + "%",
 									"High"));
 						}
-					}
-					if(int_body_orderby1.matches(errorRegex)){
-						callbacks.addScanIssue(new CustomScanIssue(
-								baseRequestResponse.getHttpService(),
-								helpers.analyzeRequest(baseRequestResponse).getUrl(),
-								new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
-								"SQL TEST",
-								"error",
-								"High"));
 					}
 				}
 			}
@@ -378,7 +341,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 							String int_body1 = new String(req.getResponse()).substring(int_bodyOffset1);
 							StringSimilarity similar = new StringSimilarity();
 							double similarity = similar.lengthRatio(body, int_body1);
-							if (similarity > 0.05) {
+							if (similarity > 0.08) {
 								String s_new_request_body2 = request_body.replace(json_list, new_para2);
 								byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
 								new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
@@ -392,7 +355,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 								int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
 								String int_body2 = new String(req2.getResponse()).substring(int_bodyOffset2);
 								double similarity2 = similar.lengthRatio(int_body1, int_body2);
-								if (similarity2 > 0.05) {
+								if (similarity2 > 0.08) {
 									callbacks.addScanIssue(new CustomScanIssue(
 											baseRequestResponse.getHttpService(),
 											helpers.analyzeRequest(baseRequestResponse).getUrl(),
@@ -403,15 +366,6 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 
 								}
 
-							}
-							if(int_body1.matches(errorRegex)){
-								callbacks.addScanIssue(new CustomScanIssue(
-										baseRequestResponse.getHttpService(),
-										helpers.analyzeRequest(baseRequestResponse).getUrl(),
-										new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
-										"SQL TEST",
-										"error",
-										"High"));
 							}
 						}
 						new_para1 = json_list.replace(real_list_value,list_value.replace(json_value, json_value + "'"+e_str.replace("\"","")+e_str.replace("\"","")+"\\\""));
@@ -430,7 +384,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 						String int_body1 = new String(req.getResponse()).substring(int_bodyOffset1);
 						StringSimilarity similar = new StringSimilarity();
 						double similarity = similar.lengthRatio(body, int_body1);
-						if (similarity > 0.05) {
+						if (similarity > 0.08) {
 							String s_new_request_body2 = request_body.replace(json_list, new_para2);
 							byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
 							new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
@@ -444,7 +398,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 							int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
 							String int_body2 = new String(req2.getResponse()).substring(int_bodyOffset2);
 							double similarity2 = similar.lengthRatio(int_body1, int_body2);
-							if (similarity2 > 0.05) {
+							if (similarity2 > 0.08) {
 								callbacks.addScanIssue(new CustomScanIssue(
 										baseRequestResponse.getHttpService(),
 										helpers.analyzeRequest(baseRequestResponse).getUrl(),
@@ -499,7 +453,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 							String int_body1 = new String(req.getResponse()).substring(int_bodyOffset1);
 							StringSimilarity similar = new StringSimilarity();
 							double similarity = similar.lengthRatio(body,int_body1);
-							if (similarity>0.05){
+							if (similarity>0.08){
 								String s_new_request_body2 = request_body.replace(old_para,new_para2);
 								byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
 								new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
@@ -513,7 +467,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 								int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
 								String int_body2 = new String(req2.getResponse()).substring(int_bodyOffset2);
 								double similarity2 = similar.lengthRatio(int_body1,int_body2);
-								if (similarity2>0.05){
+								if (similarity2>0.08){
 									callbacks.addScanIssue(new CustomScanIssue(
 											baseRequestResponse.getHttpService(),
 											helpers.analyzeRequest(baseRequestResponse).getUrl(),
@@ -525,16 +479,6 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 								}
 
 							}
-							if(int_body1.matches(errorRegex)){
-								callbacks.addScanIssue(new CustomScanIssue(
-										baseRequestResponse.getHttpService(),
-										helpers.analyzeRequest(baseRequestResponse).getUrl(),
-										new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
-										"SQL TEST",
-										"error",
-										"High"));
-							}
-
 						}
 
 						new_para1 = json_key + ":" + json_value + "'"+e_str+e_str+"\\\"";
@@ -553,7 +497,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 						String int_body1 = new String(req.getResponse()).substring(int_bodyOffset1);
 						StringSimilarity similar = new StringSimilarity();
 						double similarity = similar.lengthRatio(body,int_body1);
-						if (similarity>0.05){
+						if (similarity>0.08){
 							String s_new_request_body2 = request_body.replace(old_para,new_para2);
 							byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
 							new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
@@ -567,7 +511,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 							int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
 							String int_body2 = new String(req2.getResponse()).substring(int_bodyOffset2);
 							double similarity2 = similar.lengthRatio(int_body1,int_body2);
-							if (similarity2>0.05){
+							if (similarity2>0.08){
 								callbacks.addScanIssue(new CustomScanIssue(
 										baseRequestResponse.getHttpService(),
 										helpers.analyzeRequest(baseRequestResponse).getUrl(),
@@ -578,15 +522,6 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 
 							}
 
-						}
-						if(int_body1.matches(errorRegex)){
-							callbacks.addScanIssue(new CustomScanIssue(
-									baseRequestResponse.getHttpService(),
-									helpers.analyzeRequest(baseRequestResponse).getUrl(),
-									new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
-									"SQL TEST",
-									"error",
-									"High"));
 						}
 
 						new_para_orderby_1 = json_key + ":" + json_value + ",aaaa";
@@ -604,7 +539,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 						int int_bodyOffset_orderby_1 = analyzedResponse_orderby_1.getBodyOffset();
 						String int_body_orderby_1 = new String(req_orderby_1.getResponse()).substring(int_bodyOffset_orderby_1);
 						similarity = similar.lengthRatio(body,int_body_orderby_1);
-						if (similarity>0.05){
+						if (similarity>0.08){
 							String s_new_request_body2 = request_body.replace(old_para,new_para_orderby_2);
 							byte[] b_new_request_body2 = strToByteArray(s_new_request_body2);
 							new_Request = helpers.buildHttpMessage(request_headers, b_new_request_body2);
@@ -618,7 +553,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 							int int_bodyOffset2 = analyzedResponse2.getBodyOffset();
 							String int_body2 = new String(req2.getResponse()).substring(int_bodyOffset2);
 							double similarity2 = similar.lengthRatio(int_body_orderby_1,int_body2);
-							if (similarity2>0.05){
+							if (similarity2>0.08){
 								callbacks.addScanIssue(new CustomScanIssue(
 										baseRequestResponse.getHttpService(),
 										helpers.analyzeRequest(baseRequestResponse).getUrl(),
@@ -629,15 +564,6 @@ public class BurpExtender implements IBurpExtender, IScannerCheck {
 
 							}
 
-						}
-						if(int_body_orderby_1.matches(errorRegex)){
-							callbacks.addScanIssue(new CustomScanIssue(
-									baseRequestResponse.getHttpService(),
-									helpers.analyzeRequest(baseRequestResponse).getUrl(),
-									new IHttpRequestResponse[]{callbacks.applyMarkers(baseRequestResponse, null, null)},
-									"SQL TEST",
-									"error",
-									"High"));
 						}
 					}
 				}
