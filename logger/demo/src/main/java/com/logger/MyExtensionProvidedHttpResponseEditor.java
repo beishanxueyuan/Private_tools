@@ -74,7 +74,7 @@ class MyExtensionProvidedHttpResponseEditor implements ExtensionProvidedHttpResp
         String beautifiedJson = "";
         Logging logging = api.logging();
         ByteArray body;
-        if ((body_str.contains("\":\""))) {
+        if ((body_str.startsWith("{\""))) {
             ObjectMapper objectMapper = new ObjectMapper();
             ObjectWriter writer = objectMapper.writer().with(SerializationFeature.INDENT_OUTPUT);
             Object json;
@@ -84,8 +84,17 @@ class MyExtensionProvidedHttpResponseEditor implements ExtensionProvidedHttpResp
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
-            body = byteArray(beautifiedJson.getBytes(StandardCharsets.UTF_8));
-        } else {
+            api.logging().logToOutput(body_str);
+            if(body_str.matches(".*[\\\\u4e00-\\\\u9fa5].*")){
+                api.logging().logToOutput("111");
+                body = byteArray(beautifiedJson.getBytes(StandardCharsets.UTF_8));
+            }
+            else{
+                api.logging().logToOutput("222");
+                body = byteArray(beautifiedJson);
+            }
+        }
+        else {
             body_str = body_str.replace("&", "\n&");
             body = byteArray(body_str);
         }
