@@ -1,0 +1,46 @@
+var mimeType = requestResponse.mimeType();
+var path = requestResponse.request().pathWithoutQuery().toLowerCase();
+if(!requestResponse.request().method().contentEquals("OPTIONS") && requestResponse.request().isInScope()
+ && mimeType != MimeType.CSS
+ && mimeType != MimeType.IMAGE_UNKNOWN
+ && mimeType != MimeType.IMAGE_JPEG
+ && mimeType != MimeType.IMAGE_GIF
+ && mimeType != MimeType.IMAGE_PNG
+ && mimeType != MimeType.IMAGE_BMP
+ && mimeType != MimeType.IMAGE_TIFF
+ && !path.endsWith(".gif")
+ && !path.endsWith(".jpg")
+ && !path.endsWith(".png")
+ && !path.endsWith(".css")
+ && !path.endsWith(".svg")
+ && !path.endsWith(".js")
+ && !path.endsWith(".map")
+ && !path.endsWith(".mp4")
+ && !path.endsWith(".woff")
+ && !path.endsWith(".woff2")
+ && !path.endsWith(".ttf")
+ && !path.endsWith(".jpeg")
+ && !path.endsWith(".mov")
+ && !path.endsWith(".webp")
+ && !path.endsWith(".ico")){
+
+// Get the request object
+var request = requestResponse.request();
+var request_body = request.bodyToString();
+var request_url = request.url();
+    
+if(request_body.matches(".*(?:sort=|\"sort\"|orderby|orderby=|\"desc\"|\"asc\"|=desc(\\s|&)|=asc(\\s|&)).*") || request_url.matches(".*(?:sort=|\"sort\"|orderby|orderby=|\"desc\"|\"asc\"|=desc(\\s|&)|=asc(\\s|&)).*")){
+        requestResponse.annotations().setHighlightColor(HighlightColor.BLUE);
+        
+        }
+
+if(request_url.matches(".*([\\?|&](redirect|s_url|r_uri|goto|backurl|redirect|reference|return|refix|readﬁle|redirect_to|redirect_url|returnto|register|returnurl|redirecturi|redir|returl|redirecturl|redirect_uri|redirect_url|return_url|from_url|jump|target|target_url)=.*)")){
+        requestResponse.annotations().setHighlightColor(HighlightColor.YELLOW);
+        
+        }
+    return true;
+
+    }
+else{
+    return false;
+    }
