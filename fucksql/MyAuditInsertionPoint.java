@@ -133,6 +133,9 @@ class MyScanCheck implements ScanCheck {
                 if(Pattern.matches(paramWhitelistText, parameter.name())){
                     continue;
                 }
+                if(parameter_value.equals("")){
+                    parameter_value="1";
+                }
                 if (isNumericZidai(parameter_value)) {
                     HttpParameter updatedParameter = HttpParameter.parameter(parameter.name(), parameter_value + "-a",parameter.type());
                     HttpRequest checkRequest = baseRequestResponse.request().withUpdatedParameters(updatedParameter);
@@ -262,7 +265,9 @@ class MyScanCheck implements ScanCheck {
 
                 for (String list_value : list_values) {
                     String real_list_value = list_value;
-
+                    if(real_list_value == ""){
+                        return auditResult();
+                    }
                     // value为空时的处理
                     if (list_value.equals(e_str + e_str)) {
                         list_value = e_str + "1" + e_str;
@@ -395,7 +400,6 @@ class MyScanCheck implements ScanCheck {
                 String json_key1 = m.group(2) + m.group(3);
                 String json_real_value = m.group(5);
                 String json_value1 = m.group(4) + m.group(5);
-                print(json_real_key);
                 if(Pattern.matches(paramWhitelistText, json_real_key)){
                     continue;
                 }
