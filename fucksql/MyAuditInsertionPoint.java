@@ -45,7 +45,6 @@ class MyScanCheck implements ScanCheck {
     private String urlWhitelistText = "";
     private String paramWhitelistText = "";
     boolean EnableProjectFilterCheckBox = true;
-    
 
     MyScanCheck(MontoyaApi api) {
         this.api = api;
@@ -80,13 +79,13 @@ class MyScanCheck implements ScanCheck {
         Logging logging = api.logging();
         logging.logToOutput(str);
     }
-    
-    public HttpRequestResponse sendrequest(HttpRequest request){
-        if(sleep_time != null && !sleep_time.trim().isEmpty()){
+
+    public HttpRequestResponse sendrequest(HttpRequest request) {
+        if (sleep_time != null && !sleep_time.trim().isEmpty()) {
             try {
                 double sleepTimeValue = Double.parseDouble(sleep_time);
-                if(sleepTimeValue > 0){
-                    Thread.sleep((int)(sleepTimeValue * 1000));
+                if (sleepTimeValue > 0) {
+                    Thread.sleep((int) (sleepTimeValue * 1000));
                 }
             } catch (NumberFormatException | InterruptedException e) {
                 e.printStackTrace();
@@ -95,7 +94,7 @@ class MyScanCheck implements ScanCheck {
         HttpRequestResponse requestresponse = api.http().sendRequest(request);
         return requestresponse;
     }
-    
+
     @Override
     public AuditResult passiveAudit(HttpRequestResponse baseRequestResponse) {
         List<AuditIssue> auditIssueList = new ArrayList<>();
@@ -104,56 +103,64 @@ class MyScanCheck implements ScanCheck {
         String request_body = baseRequestResponse.request().bodyToString();
         String response_body = baseRequestResponse.response().bodyToString();
         // get or post
-        if(EnableProjectFilterCheckBox){
-            if(!api.scope().isInScope(baseRequestResponse.request().url())){
+        if (EnableProjectFilterCheckBox) {
+            if (!api.scope().isInScope(baseRequestResponse.request().url())) {
                 return auditResult();
             }
         }
-        List<String> list = asList("myqcloud.com", ".3g2", ".3gp", ".7z", ".aac", ".abw", ".aif", ".aifc", ".aiff", ".arc", ".au", ".avi", ".azw", ".bin", ".bmp", ".bz", ".bz2", ".cmx", ".cod", ".csh", ".css", ".csv", ".doc", ".docx", ".eot", ".epub", ".gif", ".gz", ".ico", ".ics", ".ief", ".jar", ".jfif", ".jpe", ".jpeg", ".jpg", ".m3u", ".mid", ".midi", ".mp4", ".mjs", ".mp2", ".mp3", ".mpa", ".mpe", ".mpeg", ".mpg", ".mpkg", ".mpp", ".mpv2", ".odp", ".ods", ".odt", ".oga", ".ogv", ".ogx", ".otf", ".pbm", ".pdf", ".pgm", ".png", ".pnm", ".ppm", ".ppt", ".pptx", ".ra", ".ram", ".rar", ".ras", ".rgb", ".rmi", ".rtf", ".snd", ".svg", ".swf", ".tar", ".tif", ".tiff", ".ttf", ".vsd", ".wav", ".weba", ".webm", ".webp", ".woff", ".woff2", ".xbm", ".xls", ".xlsx", ".xpm", ".xul", ".xwd", ".zip", ".zip", ".js");
+        List<String> list = asList("myqcloud.com", ".3g2", ".3gp", ".7z", ".aac", ".abw", ".aif", ".aifc", ".aiff",
+                ".arc", ".au", ".avi", ".azw", ".bin", ".bmp", ".bz", ".bz2", ".cmx", ".cod", ".csh", ".css", ".csv",
+                ".doc", ".docx", ".eot", ".epub", ".gif", ".gz", ".ico", ".ics", ".ief", ".jar", ".jfif", ".jpe",
+                ".jpeg", ".jpg", ".m3u", ".mid", ".midi", ".mp4", ".mjs", ".mp2", ".mp3", ".mpa", ".mpe", ".mpeg",
+                ".mpg", ".mpkg", ".mpp", ".mpv2", ".odp", ".ods", ".odt", ".oga", ".ogv", ".ogx", ".otf", ".pbm",
+                ".pdf", ".pgm", ".png", ".pnm", ".ppm", ".ppt", ".pptx", ".ra", ".ram", ".rar", ".ras", ".rgb", ".rmi",
+                ".rtf", ".snd", ".svg", ".swf", ".tar", ".tif", ".tiff", ".ttf", ".vsd", ".wav", ".weba", ".webm",
+                ".webp", ".woff", ".woff2", ".xbm", ".xls", ".xlsx", ".xpm", ".xul", ".xwd", ".zip", ".zip", ".js");
         try {
             URL request_url = new URL(baseRequestResponse.request().url());
-            if(Pattern.matches(urlWhitelistText,baseRequestResponse.request().url())){
+            if (Pattern.matches(urlWhitelistText, baseRequestResponse.request().url())) {
                 return auditResult();
             }
             for (int i = 0; i < list.size(); i++) {
-				String type = list.get(i);
-				if (request_url.toString().contains(type) && !request_url.getHost().contains(type)) {
-					return auditResult();
-				}
-			}
+                String type = list.get(i);
+                if (request_url.toString().contains(type) && !request_url.getHost().contains(type)) {
+                    return auditResult();
+                }
+            }
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
 
-        
-        
         for (ParsedHttpParameter parameter : parameters) {
             String parameter_value = parameter.value();
             if (parameter.type().toString() == "BODY" || parameter.type().toString() == "URL") {
-                if(Pattern.matches(paramWhitelistText, parameter.name())){
+                if (Pattern.matches(paramWhitelistText, parameter.name())) {
                     continue;
                 }
-                if(parameter_value.equals("")){
-                    parameter_value="1";
+                if (parameter_value.equals("")) {
+                    parameter_value = "1";
                 }
                 if (isNumericZidai(parameter_value)) {
-                    HttpParameter updatedParameter = HttpParameter.parameter(parameter.name(), parameter_value + "-a",parameter.type());
+                    HttpParameter updatedParameter = HttpParameter.parameter(parameter.name(), parameter_value + "-a",
+                            parameter.type());
                     HttpRequest checkRequest = baseRequestResponse.request().withUpdatedParameters(updatedParameter);
                     HttpRequestResponse checkRequestResponse = sendrequest(checkRequest);
                     String response_body1 = checkRequestResponse.response().bodyToString();
                     double similarity1 = similar.lengthRatio(response_body, response_body1);
                     if (similarity1 > 0.08) {
                         HttpParameter updatedParameter2 = HttpParameter.parameter(parameter.name(),
-                            parameter_value + "-1",
-                            parameter.type());
-                        HttpRequest checkRequest2 = baseRequestResponse.request().withUpdatedParameters(updatedParameter2);
+                                parameter_value + "-1",
+                                parameter.type());
+                        HttpRequest checkRequest2 = baseRequestResponse.request()
+                                .withUpdatedParameters(updatedParameter2);
                         HttpRequestResponse checkRequestResponse2 = sendrequest(checkRequest2);
                         String response_body2 = checkRequestResponse2.response().bodyToString();
                         double similarity = similar.lengthRatio(response_body1, response_body2);
                         if (similarity > 0.08) {
                             List<HttpRequestResponse> requestResponseList = new ArrayList<>();
                             requestResponseList.add(
-                                    HttpRequestResponse.httpRequestResponse(checkRequest, checkRequestResponse.response()));
+                                    HttpRequestResponse.httpRequestResponse(checkRequest,
+                                            checkRequestResponse.response()));
                             requestResponseList.add(HttpRequestResponse.httpRequestResponse(checkRequest2,
                                     checkRequestResponse2.response()));
                             auditIssueList.add(
@@ -168,7 +175,7 @@ class MyScanCheck implements ScanCheck {
                                             null,
                                             AuditIssueSeverity.HIGH,
                                             requestResponseList));
-    
+
                         }
                     }
 
@@ -209,7 +216,8 @@ class MyScanCheck implements ScanCheck {
                     }
 
                 }
-                updatedParameter = HttpParameter.parameter(parameter.name(), parameter_value + ",aaaa",parameter.type());
+                updatedParameter = HttpParameter.parameter(parameter.name(), parameter_value + ",aaaa",
+                        parameter.type());
                 checkRequest = baseRequestResponse.request().withUpdatedParameters(updatedParameter);
                 checkRequestResponse = sendrequest(checkRequest);
                 response_body1 = checkRequestResponse.response().bodyToString();
@@ -251,7 +259,7 @@ class MyScanCheck implements ScanCheck {
                 || baseRequestResponse.request().bodyToString().contains("\":[\"")) {
             // json list
 
-            Pattern p_list = Pattern.compile("(\"|\\\\\")(\\S+)(\"|\\\\\"):\\[(.*?)\\]");
+            Pattern p_list = Pattern.compile("(\"|\\\\\")(\\S+?)(\"|\\\\\"):\\[(.*?)\\]");
             Matcher m_list = p_list.matcher(request_body);
             String json_list = null;
             String json_key = null;
@@ -262,10 +270,17 @@ class MyScanCheck implements ScanCheck {
                 json_list = m_list.group();
                 list_values = m_list.group(4).split(",");
                 e_str = m_list.group(3);
-
+                boolean fg = false;// 列表只需要执行一次
                 for (String list_value : list_values) {
+                    if (fg) {
+                        continue;
+                    }
+                    fg = true;
                     String real_list_value = list_value;
-                    if(real_list_value == ""){
+                    if (!list_value.contains("\"")) {
+                        list_value = e_str + list_value + e_str;
+                    }
+                    if (real_list_value == "") {
                         return auditResult();
                     }
                     // value为空时的处理
@@ -400,7 +415,7 @@ class MyScanCheck implements ScanCheck {
                 String json_key1 = m.group(2) + m.group(3);
                 String json_real_value = m.group(5);
                 String json_value1 = m.group(4) + m.group(5);
-                if(Pattern.matches(paramWhitelistText, json_real_key)){
+                if (Pattern.matches(paramWhitelistText, json_real_key)) {
                     continue;
                 }
                 if ((json_value1.startsWith("\"") || json_value1.startsWith("\\\"") && !json_value1.startsWith("["))) {
