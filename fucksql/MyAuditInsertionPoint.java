@@ -31,6 +31,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
+
 import static java.util.Collections.emptyList;
 
 import static burp.api.montoya.scanner.AuditResult.auditResult;
@@ -98,10 +100,16 @@ class MyScanCheck implements ScanCheck {
     @Override
     public AuditResult passiveAudit(HttpRequestResponse baseRequestResponse) {
         List<AuditIssue> auditIssueList = new ArrayList<>();
-        ;
         List<ParsedHttpParameter> parameters = baseRequestResponse.request().parameters();
         String request_body = baseRequestResponse.request().bodyToString();
         String response_body = baseRequestResponse.response().bodyToString();
+        try {
+            String request_body_decode = URLDecoder.decode(request_body, "UTF-8");
+            if(request_body_decode.contains("{\"")){
+                request_body=request_body_decode;
+            }
+        } catch (Exception e) {
+        }
         // get or post
         if (EnableProjectFilterCheckBox) {
             if (!api.scope().isInScope(baseRequestResponse.request().url())) {
