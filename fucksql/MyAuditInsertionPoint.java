@@ -10,7 +10,6 @@ package com.fucksql;
 
 import java.util.ArrayList;
 import static java.util.Arrays.asList;
-import java.util.Arrays;
 import java.util.List;
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.http.message.HttpRequestResponse;
@@ -32,8 +31,6 @@ import java.awt.event.ActionListener;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
-
-import static java.util.Collections.emptyList;
 
 import static burp.api.montoya.scanner.AuditResult.auditResult;
 import static burp.api.montoya.scanner.ConsolidationAction.KEEP_BOTH;
@@ -266,7 +263,6 @@ class MyScanCheck implements ScanCheck {
         if (baseRequestResponse.request().bodyToString().contains("\":\"")
                 || baseRequestResponse.request().bodyToString().contains("\":[\"")) {
             // json list
-
             Pattern p_list = Pattern.compile("(\"|\\\\\")(\\S+?)(\"|\\\\\"):\\[(.*?)\\]");
             Matcher m_list = p_list.matcher(request_body);
             String json_list = null;
@@ -289,7 +285,7 @@ class MyScanCheck implements ScanCheck {
                         list_value = e_str + list_value + e_str;
                     }
                     if (real_list_value == "") {
-                        return auditResult();
+                        continue;
                     }
                     // value为空时的处理
                     if (list_value.equals(e_str + e_str)) {
@@ -412,11 +408,11 @@ class MyScanCheck implements ScanCheck {
                     }
                 }
             }
-
             // json
             String pattern = "(\"|\\\\\")(\\S+?)(\"|\\\\\"):(\"|\\\\\")(?!\\{)(.*?)(\"|\\\\\")";
             Pattern r = Pattern.compile(pattern);
             Matcher m = r.matcher(request_body);
+            print(request_body);
             while (m.find()) {
                 String json_e_str = m.group(3).replace("\"", "");
                 String json_real_key = m.group(2);
