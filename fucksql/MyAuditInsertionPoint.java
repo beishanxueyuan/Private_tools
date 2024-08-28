@@ -96,6 +96,9 @@ class MyScanCheck implements ScanCheck {
 
     @Override
     public AuditResult passiveAudit(HttpRequestResponse baseRequestResponse) {
+        if(baseRequestResponse.request().method().equals("OPTIONS")){
+            return auditResult();
+        }
         List<AuditIssue> auditIssueList = new ArrayList<>();
         List<ParsedHttpParameter> parameters = baseRequestResponse.request().parameters();
         String request_body = baseRequestResponse.request().bodyToString();
